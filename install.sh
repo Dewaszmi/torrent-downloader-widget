@@ -76,7 +76,7 @@ fi
 echo "Updating the daemon configuration file at $daemon_config"
 sudo sed -i "s|\(\"download-dir\": \)\"[^\"]*\"|\1\"$shared_dir\"|" $daemon_config
 sudo sed -i "s|\(\"incomplete-dir\": \)\"[^\"]*\"|\1\"$shared_dir\"|" $daemon_config
-sudo sed -i "s|\(\"incomplete-dir-enabled\": \)\"[^\"]*\"|\1\"true\"|" $daemon_config
+sudo sed -i "s|\(\"incomplete-dir-enabled\": \)\"[^\"]*\"|\1\"true\"|" $daemon_config # BUG: fix boolean change
 
 echo "${OK} Configuration updated."
 echo "${INFO} Creating symlinked downloads directory."
