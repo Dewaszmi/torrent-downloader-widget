@@ -19,21 +19,22 @@ RESET="$(tput sgr0)"
 echo "${INFO} INSTALLING TORRENT UTILITY SOFTWARE"
 
 is_installed_rpm() {
-    rpm -q "$1" &>/dev/null
+  rpm -q "$1" &>/dev/null
 }
 
 printf "\n%.0s" {1..2}
 echo "${ORANGE}Act I: ${RESET}Installing ${SKY_BLUE}Transmission"
 printf "\n%.0s" {1..1}
 
-transmission_packages=(
+required_packages=(
   transmission
   transmission-cli
   transmission-daemon
+  eww
 )
 missing=()
 
-for pkg in "${transmission_packages[@]}"; do
+for pkg in "${required_packages[@]}"; do
   if is_installed_rpm "$pkg"; then
     echo "Found ${GREEN}"$pkg" ${RESET}installation."
   else
@@ -67,9 +68,9 @@ daemon_config="/var/lib/transmission/.config/transmission-daemon/settings.json"
 if [ ! -f $daemon_config ]; then
   echo "${WARN} Configuration file at $daemon_config not found"
   echo "${MAGENTA}Awakening daemon so it generates a default configuration file..${RESET}"
-sudo systemctl start transmission-daemon
-sleep 1
-transmission-remote --exit
+  sudo systemctl start transmission-daemon
+  sleep 1
+  transmission-remote --exit
 fi
 
 # Modify config to use the shared dir
@@ -102,13 +103,14 @@ echo "${INFO} Symlinked directory created"
 printf "\n%.0s" {1..1}
 read -p "${INFO} Daemon configuration finished. Do you want to start it now? [Y/n]" input
 case "$input" in
-  [nN])
-  echo "${NOTE} Skipping daemon start. You can start it manually later with \"sudo systemctl start transmission-daemon\"";;
-  *)
-    echo "${INFO} Starting transmission daemon service"
-    sudo systemctl start transmission-daemon
-    if systemctl is-active --quiet transmission-daemon; then
-      echo "${OK} Daemon active"
-    fi
-    ;;
+[nN])
+  echo "${NOTE} Skipping daemon start. You can start it manually later with \"sudo systemctl start transmission-daemon\""
+  ;;
+*)
+  echo "${INFO} Starting transmission daemon service"
+  sudo systemctl start transmission-daemon
+  if systemctl is-active --quiet transmission-daemon; then
+    echo "${OK} Daemon active"
+  fi
+  ;;
 esac

@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
 API_DIR="$HOME/torrent-api"
-mkdir - p$API_DIR
+mkdir -p $API_DIR
 cd $API_DIR
 
-if ! command -v docker >/dev/null 2>&1
-then
+if ! command -v docker >/dev/null 2>&1; then
   echo "Missing docker installation, install docker"
   exit 1
 fi
@@ -22,12 +21,15 @@ if lsof -i :8009 >/dev/null 2>&1; then
 fi
 
 docker compose up -d --build
-echo "test"
 
-until docker compose ps | grep "api-py" | grep -q running; do
-  echo "test"
-  sleep 0.5
-  echo -n "."
+until docker compose ps | grep "api-py"; do
+  sleep 1
 done
 
-echo "Container running, api available at http://localhost:8009"
+echo "Container running, API available at http://localhost:8009"
+
+until curl -sSf http://localhost:8009 >/dev/null; do
+  sleep 1
+done
+
+echo "API responsive."
