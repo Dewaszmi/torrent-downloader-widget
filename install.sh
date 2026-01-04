@@ -27,10 +27,11 @@ echo "${ORANGE}Act I: ${RESET}Installing ${SKY_BLUE}Transmission"
 printf "\n%.0s" {1..1}
 
 required_packages=(
+  python
+  jq
   transmission
   transmission-cli
   transmission-daemon
-  eww
 )
 missing=()
 
@@ -75,9 +76,11 @@ fi
 
 # Modify config to use the shared dir
 echo "Updating the daemon configuration file at $daemon_config"
-sudo sed -i "s|\(\"download-dir\": \)\"[^\"]*\"|\1\"$shared_dir\"|" $daemon_config
-sudo sed -i "s|\(\"incomplete-dir\": \)\"[^\"]*\"|\1\"$shared_dir\"|" $daemon_config
-sudo sed -i "s|\(\"incomplete-dir-enabled\": \)\"[^\"]*\"|\1\"true\"|" $daemon_config # BUG: fix boolean change
+jq --arg dl "$shared_dir" \
+  ' ."download-dir" = $dl | 
+     ."incomplete-dir" = $dl | 
+     ."incomplete-dir-enabled" = true ' \
+  "$daemon_config" | sponge "$daemon_config"
 
 echo "${OK} Configuration updated."
 echo "${INFO} Creating symlinked downloads directory."
@@ -89,7 +92,7 @@ while true; do
   symlink_dir="${input_path:-$DEFAULT_DOWNLOAD_PATH}"
 
   if mkdir -p "$symlink_dir" 2>/dev/null; then
-    echo "Created directory \"$symlink_dir"
+    echo "Created directory \"$symlink_dir."
     break
   else
     echo "Failed to create directory \"$symlink_dir\". You might have wrong permissions."
@@ -97,20 +100,20 @@ while true; do
 done
 
 # Create and sync the symlinked dir
-ln -sfn $shared_dir $symlink_dir
-echo "${INFO} Symlinked directory created"
+ln -sfn "$shared_dir" "$symlink_dir"
+echo "${INFO} Symlinked directory created."
 
 printf "\n%.0s" {1..1}
-read -p "${INFO} Daemon configuration finished. Do you want to start it now? [Y/n]" input
+read -pr "${INFO} Daemon configuration finished. Do you want to start it now? [Y/n]" input
 case "$input" in
 [nN])
-  echo "${NOTE} Skipping daemon start. You can start it manually later with \"sudo systemctl start transmission-daemon\""
+  echo "${NOTE} Skipping daemon start. You can start it manually later with \"sudo systemctl start transmission-daemon\"."
   ;;
 *)
-  echo "${INFO} Starting transmission daemon service"
+  echo "${INFO} Starting transmission daemon service."
   sudo systemctl start transmission-daemon
   if systemctl is-active --quiet transmission-daemon; then
-    echo "${OK} Daemon active"
+    echo "${OK} Daemon active."
   fi
   ;;
 esac

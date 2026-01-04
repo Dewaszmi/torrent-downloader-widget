@@ -1,15 +1,80 @@
+import asyncio
 import os
 import subprocess
 
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical
-from textual.widgets import DataTable, Footer, Header, Label
+from textual.containers import Center, Horizontal, Vertical
+from textual.widgets import Button, DataTable, Footer, Header, Label, RichLog, Static
 
 # --- CONFIGURATION ---
 TORRENT_DIR = os.path.expanduser(
-    "~/dev/torrent-downloader-widget/torrent_dir"
+    "/home/dewaszmi/torrent-dir"
 )  # Change this to your path
-# ---------------------
+
+
+class ServerSetup(App):
+    def compose(self) -> ComposeResult:
+        yield Header()
+        yield Center(id="main-container")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self.check_api_availability()
+        self.set_interval(5, self.check_api_availability())
+
+    def check_api_availability(self) -> None:
+        cmd = 'docker compose ps | grep "api-py"'
+
+        proc = await asyncio.create_subprocess_shell(
+            cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        stdout, _ = await proc.communicate()
+
+        is_running = len(stdout.strip()) > 0
+        container = self.query_one("#main-container")
+
+        if not is_running:
+            if not self.query("#setup-btn"):
+                container.mount(
+                    Static("api-py is NOT running", id="status-msg", classes="warning")
+                )
+                container.mount(
+                    Button("Start api-py Container", id="setup-btn", variant="error")
+                )
+        else:
+            self.query("#status-msg").remove()
+            self.query("#setup-btn").remove()
+            if not self.query("healthy-msg"):
+                container.mount(Static("api-py is running", id="healthy-msg"))
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "setup-btn":
+            container = self.query_one("#main-container")
+
+            self.query("#status-msg").remove()
+            event.button.remove()
+
+            log = RichLog(id="setup-log", highlight=True, markup=True)
+            await container.mount(log)
+
+            await self.run_api_server(log)
+
+    async def run_api_server(self, log: RichLog):
+        process = await asyncio.create_subprocess_shell(
+            "sh scripts/start_api_server",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+
+        while True:
+            line = await process.stdout.readline()
+            if not line:
+                break
+            log.write(line.decode().strip())
+
+        await asyncio.sleep(3)
+        log.remove()
+        self.check_api_availability()
 
 
 class TorrentManager(App):
@@ -64,9 +129,6 @@ class TorrentManager(App):
         files = self.query_one("#file-table", DataTable)
         files.add_columns("File Name")
         files.cursor_type = "row"
-
-        self.refresh_all()
-        self.set_interval(3, self.refresh_active)  # Auto-refresh active transfers
 
     def refresh_all(self):
         self.refresh_active()
