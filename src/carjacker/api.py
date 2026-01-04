@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 
 import httpx
-import jq
+import json
 
 
 async def find_jackett_torrents(search_query: str):
@@ -11,8 +11,8 @@ async def find_jackett_torrents(search_query: str):
     # Get Jackett API key from the config file
     jackett_config_path = Path("~/.config/Jackett/ServerConfig.json").expanduser()
     with open(jackett_config_path) as f:
-        json_data = jq.load(f)
-        api_key = jq.one(".APIKey", json_data)
+        json_data = json.load(f)
+        api_key = json_data.get("APIKey")
 
     print(api_key)
 
@@ -28,10 +28,10 @@ async def find_jackett_torrents(search_query: str):
             results = r.json()["Results"]
     except httpx.HTTPStatusError as e:
         print(f"Server returned an error: {e.response.status_code}")
-        return
+        return []
     except httpx.RequestError as e:
         print(f"An error occured while requesting {e.request.url!r}: {e}")
-        return
+        return []
 
     result_array = []
     for item in results:
