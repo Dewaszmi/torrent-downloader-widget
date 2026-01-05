@@ -11,8 +11,12 @@ dependencies = [
   "httpx",
   "transmission-rpc",
   "jq",
+  "rich",
 ]
 requires-python = ">=3.8"
 
 [project.scripts]
 carjacker = "carjacker.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
