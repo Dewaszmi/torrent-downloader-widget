@@ -10,7 +10,6 @@ dependencies = [
   "textual",
   "httpx",
   "transmission-rpc",
-  "jq",
   "rich",
 ]
 requires-python = ">=3.8"

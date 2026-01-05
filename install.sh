@@ -26,6 +26,7 @@ dependencies=(
   transmission
   transmission-cli
   transmission-daemon
+  pipx
 )
 
 required_binaries=(
