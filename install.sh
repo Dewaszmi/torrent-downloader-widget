@@ -50,7 +50,7 @@ dependency_check() {
   done
 
   if [ ${#missing[@]} -eq 0 ]; then
-    echo "${OK} All required executables found."
+    echo "All required executables found."
     return 0
   else
     echo "${ERROR} Missing executables:"
@@ -61,18 +61,18 @@ dependency_check() {
   fi
 }
 
-printf "\n%.0s" {1..2}
+printf "\n%.0s" {1..1}
 echo "Installing ${MAGENTA}Carjacker${RESET}."
 
 # ============================
-printf "\n%.0s" {1..2}
+printf "\n%.0s" {1..1}
 echo "${ORANGE}Act I: ${RESET}Dependency check"
 printf "\n%.0s" {1..1}
 # ============================
 
 if cat /etc/*-release | grep "Fedora" &>/dev/null; then
-  echo "${INFO}Found Fedora based distribution, running package check via dnf."
-  sh scripts/fedora_package_install.sh
+  echo "${INFO} Found Fedora based distribution, running package check via rpm."
+  sh scripts/fedora_package_install.sh "${dependencies[@]}"
 else
   echo "${INFO}You are running a Linux distribution other than Fedora, you might have to take care of installing dependencies yourself."
 fi
@@ -96,63 +96,63 @@ printf "\n%.0s" {1..1}
 # ============================
 
 # (from https://wiki.archlinux.org/title/Transmission#Configuring_the_daemon)
-echo "${NOTE} By default, Transmission creates a separate user \"transmission\" for security measures. This script follows that idea. To stop / start the daemon in the future, use standard systemctl utility."
-echo "${WARN} Because of that however, the global configuration is going to be overwritten. If a non-default configuration has been detected, it will be saved to a .bak file in the same location."
+echo "${NOTE} By default, Transmission creates a separate user \"transmission\" for security measures. This script follows that idea. To stop / start the daemon in the future, use standard systemctl utility. Because of that however, the global configuration is going to be overwritten. If a non-default configuration has been detected, it will be saved to a .bak file in the same location."
 
 # Setting up daemon configuration to point to the set download directory
+printf "\n"
 echo "Configuring the Transmission daemon."
 
 daemon_config="/var/lib/transmission/.config/transmission-daemon/settings.json"
 if [ ! -f $daemon_config ]; then
-  echo "${WARN} Configuration file at $daemon_config not found"
-  echo "${MAGENTA}Awakening daemon so it generates a default configuration file..${RESET}"
+  echo "Configuration file at ${SKY_BLUE}$daemon_config${RESET} not found."
+  echo "${YELLOW}Awakening daemon so it generates a default configuration file..${RESET}"
   sudo systemctl start transmission-daemon
   transmission-remote --exit
 else
-  echo "${WARN} Found existing configuration file at $daemon_config."
-  echo "The old configuration will be saved to $daemon_config.bak"
+  echo "${INFO} Found existing configuration file at ${SKY_BLUE}$daemon_config${RESET}."
+  echo "The old configuration will be saved to ${YELLOW}$daemon_config.bak${RESET}."
   sudo mv "$daemon_config" "$daemon_config.bak"
   sudo systemctl start transmission-daemon
   transmission-remote --exit
 fi
 
 shared_dir="/mnt/data/torrents"
-echo "Creating shared download dir for transmission and current user at $shared_dir."
+echo "Creating shared download dir for transmission and current user at ${SKY_BLUE}$shared_dir${RESET}."
 sudo mkdir -p "$shared_dir"
-sudo chown -R $(whoami):transmission "$shared_dir"
+sudo chown -R "$(whoami):transmission" "$shared_dir"
 sudo chmod -R 775 "$shared_dir"
 
 # Modify config to use the shared dir
-echo "Setting the download directory location in $daemon_config to $shared_dir."
+echo "Setting the download directory location in ${SKY_BLUE}$daemon_config${RESET} to ${YELLOW}$shared_dir${RESET}."
 sudo jq --arg dl "$shared_dir" \
   ' ."download-dir" = ($dl + "/complete") | 
   ."incomplete-dir" = ($dl + "/incomplete") | 
      ."incomplete-dir-enabled" = true ' \
   "$daemon_config" | sudo sponge "$daemon_config"
 
-echo "${OK}Transmission configuration updated."
+printf "\n"
+echo "${OK} Transmission configuration updated."
 
-# Create a symlinked directory at $HOME/Downloads for convenience
-echo "${INFO} Creating symlinked downloads directory."
+echo "${INFO} Creating symlinked downloads directory for convenience."
 
 DEFAULT_DOWNLOAD_PATH="$HOME/Downloads/Carjacker-Downloads"
 
 while true; do
-  read -p "${CAT} Specify path for the downloads directory (leave empty for default location: $DEFAULT_DOWNLOAD_PATH): " input_path
+  read -p "${CAT} Specify path for the downloads directory (leave empty for default location: ${SKY_BLUE}$DEFAULT_DOWNLOAD_PATH${RESET}): " input_path
   symlink_dir="${input_path:-$DEFAULT_DOWNLOAD_PATH}"
 
   # Create and sync the symlinked dir
   if mkdir -p "$symlink_dir" 2>/dev/null; then
     ln -sfn "$shared_dir" "$symlink_dir"
-    echo "${INFO} Created directory $symlink_dir symlinked to $shared_dir."
+    echo "${INFO} Created directory ${SKY_BLUE}$symlink_dir ${RESET}symlinked to ${YELLOW}$shared_dir${RESET}."
     break
   else
-    echo "Failed to create directory \"$symlink_dir\". You might have wrong permissions."
+    echo "Failed to create directory ${SKY_BLUE}$symlink_dir${RESET}. You might have wrong permissions."
   fi
 done
 
-printf "\n%.0s" {1..1}
-read -p "${INFO} Transmission daemon configuration finished. Do you want to start it now? [Y/n]" input
+printf "\n"
+read -p "${ACTION} Transmission daemon configuration finished. Do you want to start it now? [Y/n]: " input
 case "$input" in
 [nN])
   echo "${NOTE} Skipping daemon start. You can start it manually later with \"sudo systemctl start transmission-daemon\"."
@@ -168,7 +168,7 @@ esac
 
 # ============================
 printf "\n%.0s" {1..2}
-echo "${ORANGE}Act III: ${RESET}Installing ${SKY_BLUE}Jackett service${RESET}."
+echo "${ORANGE}Act III: ${RESET}Installing ${SKY_BLUE}Jackett ${RESET}service."
 printf "\n%.0s" {1..1}
 # ============================
 
@@ -184,14 +184,13 @@ if ! systemctl list-unit-files jackett.service &>/dev/null; then
   sudo ./install_service_systemd.sh
   systemctl status jackett.service
   cd - || exit
-  echo -e "\nVisit http://127.0.0.1:9117"
 else
-  echo "${OK}${GREEN}Jackett ${RESET}service already installed, skipping."
+  echo "${OK} ${GREEN}Jackett ${RESET}service already installed, skipping."
 fi
 
 # ============================
 printf "\n%.0s" {1..2}
-echo "${ORANGE}Act IV: ${GREEN}Building package via ${SKY_BLUE}pipx${RESET}."
+echo "${ORANGE}Act IV: ${RESET}Building package via ${SKY_BLUE}pipx${RESET}."
 printf "\n%.0s" {1..1}
 # ============================
 
@@ -206,16 +205,15 @@ if [ ! -f "pyproject.toml" ]; then
 fi
 
 if pipx list | grep -q "carjacker"; then
-  echo "${INFO} carjacker found, attempting upgrade..."
-  # If upgrade fails due to the 'venv does not exist' error, reinstall
+  echo "${INFO} carjacker found, attempting upgrade."
   if ! pipx upgrade . &>/dev/null; then
-    echo "${NOTE} Upgrade failed (ghost installation detected). Performing clean reinstall..."
+    echo "${NOTE} Upgrade failed (ghost installation detected). Performing clean reinstall."
     pipx uninstall carjacker &>/dev/null
-    pipx install .
+    pipx install --force .
   fi
 else
-  echo "${INFO} Installing carjacker for the first time..."
-  pipx install .
+  echo "${INFO} Installing carjacker."
+  pipx install --force .
 fi
 
 # ============================
@@ -228,22 +226,22 @@ health_check() {
   local status=0
 
   if ! systemctl list-unit-files transmission-daemon.service &>/dev/null; then
-    echo "${WARN}Transmission daemon service not found."
+    echo "${WARN} ${YELLOW}Transmission ${RESET}daemon service not found."
     status=1
   fi
 
   if ! systemctl list-unit-files jackett.service &>/dev/null; then
-    echo "${WARN}Jackett service not found."
+    echo "${WARN} ${YELLOW}Jackett ${RESET}service not found."
     status=1
   fi
 
   if [ ! -f "$daemon_config" ]; then
-    echo "${WARN}Missing transmission config file at: $daemon_config."
+    echo "${WARN} Missing transmission ${YELLOW}config ${RESET}file at: $daemon_config."
     status=1
   fi
 
   if ! command -v carjacker &>/dev/null; then
-    echo "${WARN}Missing carjacker binary in PATH."
+    echo "${WARN} Missing carjacker ${YELLOW}binary ${RESET}in PATH."
     status=1
   fi
 
@@ -251,7 +249,7 @@ health_check() {
 }
 
 if health_check; then
-  echo "${OK}Installation finished succesfully."
+  echo "${OK} No errors found, installation finished succesfully."
 else
-  echo "${ERROR} System health check failed. Please fix the warnings above."
+  echo "${WARN} System health check failed. Please fix the warnings above."
 fi
