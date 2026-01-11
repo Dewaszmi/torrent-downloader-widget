@@ -1,3 +1,4 @@
+from types import NoneType
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer
@@ -5,6 +6,7 @@ from textual.widgets import Footer
 from .trans_view import TransmissionManager
 from .jackett_view import JackettSearch
 from .header import CarJackerHeader
+from transmission_rpc import Client
 
 class CarJacker(App):
     CSS = """
@@ -20,7 +22,6 @@ class CarJacker(App):
         height: 1fr;
     }
     .pane {
-        width: 50%;
         border: solid $accent;
         margin: 1;
         padding: 1;
@@ -80,23 +81,65 @@ class CarJacker(App):
     
     BINDINGS = [
         ("tab", "focus_next", "Toggle Focus"),
+        ("z", "cycle_view", "Cycle View"),
         ("space", "toggle_status", "Action"),
         ("q", "quit", "Quit"),
         ("r", "delete_torrent", "Remove Torrent"),
         ("R", "purge_torrent", "Purge Torrent"),
     ]
 
+    client = None
+
+    def on_mount(self) -> None:
+        try:
+            self.client = Client()
+        except Exception as e:
+            self.notify(f"Transmission connection failed: {e}", severity="error")
+
     def compose(self) -> ComposeResult:
         yield CarJackerHeader()
         with Horizontal():
             # LEFT SIDE: Transmission
-            with Vertical(classes="pane"):
+            with Vertical(classes="pane", id="transmission-pane"):
                 yield TransmissionManager()
             
             # RIGHT SIDE: Jackett
-            with Vertical(classes="pane"):
+            with Vertical(classes="pane", id="jackett-pane"):
                 yield JackettSearch()
         yield Footer()
+
+    # Tracks the current view state: 0=Both, 1=Transmission Only, 2=Jackett Only
+    view_mode = 0
+
+    def on_resize(self, event) -> None:
+        """Hide the header if the terminal height is too small."""
+        header = self.query_one(CarJackerHeader)
+        
+        # If terminal height is less than 20 rows, hide the header
+        # You can adjust '20' to whatever threshold looks best for your ASCII art
+        if event.size.height < 30:
+            header.display = False
+        else:
+            header.display = True
+
+    def action_cycle_view(self) -> None:
+        """Cycles through the three layout modes."""
+        self.view_mode = (self.view_mode + 1) % 3
+        
+        trans_pane = self.query_one("#transmission-pane")
+        jackett_pane = self.query_one("#jackett-pane")
+
+        if self.view_mode == 0:
+            trans_pane.display = True
+            jackett_pane.display = True
+        elif self.view_mode == 1:
+            trans_pane.display = True
+            jackett_pane.display = False
+            trans_pane.focus()
+        else:
+            trans_pane.display = False
+            jackett_pane.display = True
+            jackett_pane.focus()
 
     def action_toggle_status(self):
         """Logic based on which widget currently has the focus."""

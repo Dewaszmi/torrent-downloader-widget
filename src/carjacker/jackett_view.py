@@ -14,11 +14,8 @@ class JackettSearch(Static):
 
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
-        table.add_column("Name", width=40)
-        table.add_columns("Seeders", "Category", "Tracker")
-        # table.set_column_visible("MagnetLink", False)
+        table.add_columns("Seeders", "Category", "Tracker", "Name", "MagnetUrl")
         table.cursor_type = "row"
-        # self.check_jackett()
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         """Triggered when Enter is pressed in the Input field."""
@@ -37,10 +34,11 @@ class JackettSearch(Static):
 
         for item in results:
             table.add_row(
-                item["Title"],
-                item["Seeders"],
-                item["Category"],
-                item["Tracker"],
+                str(item.get("Seeders", 0)),
+                item.get("Category", "N/A"),
+                item.get("Tracker", "N/A"),
+                item.get("Title", "Unknown"),
+                item.get("MagnetUrl", "N/A")
             )
 
         self.notify(f"Found {len(results)} results.")
@@ -51,7 +49,7 @@ class JackettSearch(Static):
             return
 
         row_data = table.get_row_at(table.cursor_row)
-        magnet_url = row_data[2]
+        magnet_url = row_data[4]
         await self.add_to_transmission(magnet_url)
 
     # 3. Helper to avoid code duplication
@@ -60,10 +58,7 @@ class JackettSearch(Static):
             self.notify("No Magnet URL found.", severity="error")
             return
         try:
-            from transmission_rpc import Client
-
-            client = Client()
-            client.add_torrent(magnet_url)
+            self.app.client.add_torrent(magnet_url)
             self.notify("Added to Transmission!", severity="information")
         except Exception as e:
             self.notify(f"Error: {e}", severity="error")
