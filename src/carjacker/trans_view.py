@@ -1,6 +1,6 @@
+from rich.text import Text
 from textual.widgets import DataTable, Static
 from transmission_rpc import Client
-from rich.text import Text
 
 
 class TransmissionManager(Static):
@@ -47,13 +47,20 @@ class TransmissionManager(Static):
     def update_stats(self):
         table = self.query_one(DataTable)
 
+        # 1. Save all state: Vertical, Horizontal, and Selection
         row_key = None
-        if table.row_count:
-            row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
-        
-        table.clear()
+        if table.row_count > 0 and table.cursor_row is not None:
+            try:
+                row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
+            except Exception:
+                pass
+            
+        saved_scroll_x = table.scroll_x
+        saved_scroll_y = table.scroll_y
 
+        table.clear()
         torrents = self.app.client.get_torrents()
+
         for t in torrents:
             # Determine color based on status
             status_color = "white"
@@ -68,18 +75,15 @@ class TransmissionManager(Static):
 
             status_display = Text(t.status, style=status_color)
             progress = f"{t.percent_done * 100:.1f}%"
-            
-            table.add_row(
-                progress,
-                status_display,
-                t.name, 
-                key=str(t.id)
-            )
 
-    
+            table.add_row(progress, status_display, t.name, key=str(t.id))
+
         if row_key:
             try:
                 new_pos = table.get_row_index(row_key)
                 table.move_cursor(row=new_pos)
             except Exception:
                 table.move_cursor(row=0)
+        
+        table.scroll_to(x=saved_scroll_x, y=saved_scroll_y, animate=False)
+

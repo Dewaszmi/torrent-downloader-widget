@@ -66,7 +66,7 @@ echo "Installing ${MAGENTA}Carjacker${RESET}."
 
 # ============================
 printf "\n%.0s" {1..1}
-echo "${ORANGE}Act I: ${RESET}Dependency check"
+echo "${ORANGE}Act I:${RESET} Dependency check"
 printf "\n%.0s" {1..1}
 # ============================
 
@@ -91,7 +91,7 @@ echo "${OK} Installation completed."
 
 # ============================
 printf "\n%.0s" {1..2}
-echo "${ORANGE}Act II: ${RESET}Configuring ${SKY_BLUE}Transmission daemon${RESET}."
+echo "${ORANGE}Act II:${RESET} Configuring ${SKY_BLUE}Transmission daemon${RESET}."
 printf "\n%.0s" {1..1}
 # ============================
 
@@ -107,13 +107,26 @@ if [ ! -f $daemon_config ]; then
   echo "Configuration file at ${SKY_BLUE}$daemon_config${RESET} not found."
   echo "${YELLOW}Awakening daemon so it generates a default configuration file..${RESET}"
   sudo systemctl start transmission-daemon
-  transmission-remote --exit
+  sudo systemctl stop transmission-daemon
+  # transmission-remote --exit
 else
   echo "${INFO} Found existing configuration file at ${SKY_BLUE}$daemon_config${RESET}."
   echo "The old configuration will be saved to ${YELLOW}$daemon_config.bak${RESET}."
   sudo mv "$daemon_config" "$daemon_config.bak"
   sudo systemctl start transmission-daemon
-  transmission-remote --exit
+  sudo systemctl stop transmission-daemon
+fi
+
+for _ in {1..5}; do
+  if [ -f $daemon_config ]; then
+    break
+  fi
+  sleep 1
+done
+
+if [ ! -f "$daemon_config" ]; then
+  echo "${ERROR} ${SKY_BLUE}$daemon_config${RESET} still not found, check permissions."
+  exit 1
 fi
 
 shared_dir="/mnt/data/torrents"
@@ -144,7 +157,7 @@ while true; do
   # Create and sync the symlinked dir
   if mkdir -p "$symlink_dir" 2>/dev/null; then
     ln -sfn "$shared_dir" "$symlink_dir"
-    echo "${INFO} Created directory ${SKY_BLUE}$symlink_dir ${RESET}symlinked to ${YELLOW}$shared_dir${RESET}."
+    echo "${INFO} Created directory ${SKY_BLUE}$symlink_dir${RESET} symlinked to ${YELLOW}$shared_dir${RESET}."
     break
   else
     echo "Failed to create directory ${SKY_BLUE}$symlink_dir${RESET}. You might have wrong permissions."
@@ -168,7 +181,7 @@ esac
 
 # ============================
 printf "\n%.0s" {1..2}
-echo "${ORANGE}Act III: ${RESET}Installing ${SKY_BLUE}Jackett ${RESET}service."
+echo "${ORANGE}Act III:${RESET} Installing ${SKY_BLUE}Jackett${RESET} service."
 printf "\n%.0s" {1..1}
 # ============================
 
@@ -190,7 +203,7 @@ fi
 
 # ============================
 printf "\n%.0s" {1..2}
-echo "${ORANGE}Act IV: ${RESET}Building package via ${SKY_BLUE}pipx${RESET}."
+echo "${ORANGE}Act IV:${RESET} Building package via ${SKY_BLUE}pipx${RESET}."
 printf "\n%.0s" {1..1}
 # ============================
 
@@ -204,16 +217,11 @@ if [ ! -f "pyproject.toml" ]; then
   exit 1
 fi
 
-if pipx list | grep -q "carjacker"; then
-  echo "${INFO} carjacker found, attempting upgrade."
-  if ! pipx upgrade . &>/dev/null; then
-    echo "${NOTE} Upgrade failed (ghost installation detected). Performing clean reinstall."
-    pipx uninstall carjacker &>/dev/null
-    pipx install --force .
-  fi
+echo "${INFO} Installing carjacker."
+if pipx install --force .; then
+  echo "${OK} pipx installation successful."
 else
-  echo "${INFO} Installing carjacker."
-  pipx install --force .
+  echo "${ERROR} pipx build failed."
 fi
 
 # ============================

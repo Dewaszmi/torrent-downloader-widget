@@ -37,14 +37,11 @@ class CarJackerHeader(Static):
 
     def update_speeds(self):
         try:
-            from transmission_rpc import Client
+            session_stats = self.app.client.session_stats()
 
-            client = Client()
-            session = client.get_session_stats()
-
-            # Convert bytes to KB/s or MB/s
-            down = session.download_speed / 1024
-            up = session.upload_speed / 1024
+            # convert bytes to KB/s
+            down = session_stats.download_speed / 1024
+            up = session_stats.upload_speed / 1024
 
             self.query_one("#down-speed").update(f"⬇ {down:.1f} KB/s")
             self.query_one("#up-speed").update(f"⬆ {up:.1f} KB/s")
