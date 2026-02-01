@@ -54,7 +54,7 @@ class TransmissionManager(Static):
                 row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
             except Exception:
                 pass
-            
+
         saved_scroll_x = table.scroll_x
         saved_scroll_y = table.scroll_y
 
@@ -84,6 +84,6 @@ class TransmissionManager(Static):
                 table.move_cursor(row=new_pos)
             except Exception:
                 table.move_cursor(row=0)
-        
-        table.scroll_to(x=saved_scroll_x, y=saved_scroll_y, animate=False)
 
+        table.scroll_to(x=saved_scroll_x, y=saved_scroll_y, animate=False)
+        table.scroll_to(x=saved_scroll_x, y=saved_scroll_y, animate=False)

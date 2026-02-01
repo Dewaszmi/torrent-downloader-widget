@@ -1,12 +1,14 @@
 from types import NoneType
+
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer
-
-from .trans_view import TransmissionManager
-from .jackett_view import JackettSearch
-from .header import CarJackerHeader
 from transmission_rpc import Client
+
+from .header import CarJackerHeader
+from .jackett_view import JackettSearch
+from .trans_view import TransmissionManager
+
 
 class CarJacker(App):
     CSS = """
@@ -78,7 +80,7 @@ class CarJacker(App):
     height: 3;
 }
     """
-    
+
     BINDINGS = [
         ("tab", "focus_next", "Toggle Focus"),
         ("z", "cycle_view", "Cycle View"),
@@ -102,7 +104,7 @@ class CarJacker(App):
             # LEFT SIDE: Transmission
             with Vertical(classes="pane", id="transmission-pane"):
                 yield TransmissionManager()
-            
+
             # RIGHT SIDE: Jackett
             with Vertical(classes="pane", id="jackett-pane"):
                 yield JackettSearch()
@@ -114,7 +116,7 @@ class CarJacker(App):
     def on_resize(self, event) -> None:
         """Hide the header if the terminal height is too small."""
         header = self.query_one(CarJackerHeader)
-        
+
         # If terminal height is less than 20 rows, hide the header
         # You can adjust '20' to whatever threshold looks best for your ASCII art
         if event.size.height < 30:
@@ -125,7 +127,7 @@ class CarJacker(App):
     def action_cycle_view(self) -> None:
         """Cycles through the three layout modes."""
         self.view_mode = (self.view_mode + 1) % 3
-        
+
         trans_pane = self.query_one("#transmission-pane")
         jackett_pane = self.query_one("#jackett-pane")
 
@@ -146,23 +148,24 @@ class CarJacker(App):
         # Transmission interface
         if self.query_one(TransmissionManager).query("DataTable:focus"):
             self.query_one(TransmissionManager).toggle_selected()
-        
+
         # Jackett interface
         elif self.query_one(JackettSearch).query("DataTable:focus"):
-            # Since JackettSearch.toggle_selected is async, we call it via 'run_worker'
             self.run_worker(self.query_one(JackettSearch).toggle_selected())
 
     def action_delete_torrent(self):
         if self.query_one(TransmissionManager).query("DataTable:focus"):
             self.query_one(TransmissionManager).remove_selected()
-    
+
     def action_purge_torrent(self):
         if self.query_one(TransmissionManager).query("DataTable:focus"):
             self.query_one(TransmissionManager).purge_selected()
 
+
 def main():
     app = CarJacker()
     app.run()
+
 
 if __name__ == "__main__":
     main()

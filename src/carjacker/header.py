@@ -40,11 +40,11 @@ class CarJackerHeader(Static):
             session_stats = self.app.client.session_stats()
 
             # convert bytes to KB/s
-            down = session_stats.download_speed / 1024
-            up = session_stats.upload_speed / 1024
+            down = session_stats.download_speed / 1024**2
+            up = session_stats.upload_speed / 1024**2
 
-            self.query_one("#down-speed").update(f"⬇ {down:.1f} KB/s")
-            self.query_one("#up-speed").update(f"⬆ {up:.1f} KB/s")
+            self.query_one("#down-speed").update(f"⬇ {down:.1f} MB/s")
+            self.query_one("#up-speed").update(f"⬆ {up:.1f} MB/s")
         except:
             pass
 

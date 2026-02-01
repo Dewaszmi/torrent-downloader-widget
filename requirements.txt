@@ -1,2 +1,4 @@
 requests
 textual
+transmission_rpc
+httpx

@@ -156,11 +156,11 @@ while true; do
 
   # Create and sync the symlinked dir
   if mkdir -p "$symlink_dir" 2>/dev/null; then
-    ln -sfn "$shared_dir" "$symlink_dir"
+    ln -s "$shared_dir" "$symlink_dir"
     echo "${INFO} Created directory ${SKY_BLUE}$symlink_dir${RESET} symlinked to ${YELLOW}$shared_dir${RESET}."
     break
   else
-    echo "Failed to create directory ${SKY_BLUE}$symlink_dir${RESET}. You might have wrong permissions."
+    echo "Failed to create directory ${SKY_BLUE}$symlink_dir${RESET}."
   fi
 done
 
