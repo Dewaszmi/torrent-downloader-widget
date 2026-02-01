@@ -2,6 +2,7 @@ import subprocess
 
 from textual.app import ComposeResult
 from textual.containers import Center, Horizontal, Vertical
+from textual.reactive import reactive
 from textual.widgets import Button, Static
 
 LOGO = r"""
@@ -15,17 +16,21 @@ LOGO = r"""
 
 
 class CarJackerHeader(Static):
+    download_dir = reactive("Connecting...")
+
     def compose(self) -> ComposeResult:
         with Horizontal(id="header-container"):
             # Left: Stats
             with Vertical(id="header-stats"):
-                yield Static("⬇ 0.0 KB/s", id="down-speed")
-                yield Static("⬆ 0.0 KB/s", id="up-speed")
+                yield Static("⬇ 0.0 MB/s", id="down-speed")
+                yield Static("⬆ 0.0 MB/s", id="up-speed")
                 yield Static()
 
             # Center: Logo
             with Center(id="header-logo-area"):
                 yield Static(LOGO, id="logo-text")
+
+            yield Static("", id="header-path")
 
             # Right: Placeholder Button
             # with Vertical(id="header-actions"):
@@ -34,6 +39,8 @@ class CarJackerHeader(Static):
     def on_mount(self):
         # Refresh speeds every 2 seconds
         self.set_interval(2, self.update_speeds)
+
+        self.set_timer(1.0, self.update_download_dir)
 
     def update_speeds(self):
         try:
@@ -48,17 +55,14 @@ class CarJackerHeader(Static):
         except:
             pass
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "toggle-jackett-btn":
-            jackett_status = (
-                subprocess.run(
-                    ["systemctl", "is-active", "jackett.service"],
-                    stdout=subprocess.PIPE,
-                )
-                .stdout.decode("utf-8")
-                .strip()
-            )
-            if jackett_status == "active":
-                subprocess.run(["systemctl", "stop", "jacket.service"])
-            else:
-                subprocess.run(["systemctl", "start", "jacket.service"])
+    def update_download_dir(self) -> None:
+        try:
+            # Access the client initialized in main.py
+            session = self.app.client.get_session()
+            self.download_dir = session.download_dir
+        except Exception:
+            self.download_dir = "/var/lib/transmission/..."
+
+    def watch_download_dir(self, new_dir: str) -> None:
+        """Textual 'watch' method that fires when download_dir changes."""
+        self.query_one("#header-path").update(f"Download dir: {new_dir}")

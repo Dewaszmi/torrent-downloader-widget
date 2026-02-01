@@ -138,7 +138,7 @@ sudo chmod -R 775 "$shared_dir"
 # Modify config to use the shared dir
 echo "Setting the download directory location in ${SKY_BLUE}$daemon_config${RESET} to ${YELLOW}$shared_dir${RESET}."
 sudo jq --arg dl "$shared_dir" \
-  ' ."download-dir" = ($dl + "/complete") | 
+  ' ."download-dir" = ($dl) | 
   ."incomplete-dir" = ($dl + "/incomplete") | 
      ."incomplete-dir-enabled" = true ' \
   "$daemon_config" | sudo sponge "$daemon_config"
@@ -156,7 +156,7 @@ while true; do
 
   # Create and sync the symlinked dir
   if mkdir -p "$symlink_dir" 2>/dev/null; then
-    ln -s "$shared_dir" "$symlink_dir"
+    ln -sf "$shared_dir" "$symlink_dir"
     echo "${INFO} Created directory ${SKY_BLUE}$symlink_dir${RESET} symlinked to ${YELLOW}$shared_dir${RESET}."
     break
   else

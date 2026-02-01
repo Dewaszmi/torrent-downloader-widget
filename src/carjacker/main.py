@@ -2,7 +2,7 @@ from types import NoneType
 
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Footer
+from textual.widgets import DataTable, Footer
 from transmission_rpc import Client
 
 from .header import CarJackerHeader
@@ -48,37 +48,41 @@ class CarJacker(App):
         border: double $accent;
     }
     #header-container {
-    height: 7; /* Adjust height based on your ASCII art size */
+    height: 6;
     background: $surface;
     border-bottom: tall $accent;
-    # align: middle;
+    margin-top: 0
     }
     #header-stats {
     width: 20%;
     padding: 1 2;
     color: $success;
     text-style: bold;
-}
-#header-logo-area {
-    width: 60%;
-    color: $accent;
-}
-#logo-text {
-    text-align: center;
-    width: 100%;
-    height: 5;
-    # white-space: pre;
-    overflow: hidden;
-    color: $accent
-}
-#header-actions {
-    width: 20%;
-    align: center middle;
-}
-#header-btn {
-    min-width: 12;
-    height: 3;
-}
+    }
+    #header-logo-area {
+        width: 60%;
+        color: $accent;
+    }
+    #header-path {
+        width: 24%;
+        content-align: right middle;
+        padding-right: 10;
+        color: $text-muted;
+    }
+    #logo-text {
+        text-align: center;
+        width: 100%;
+        height: 5;
+        color: $accent;
+        margin-top: -1;
+    }
+    #jackett-error {
+        height: 50%;
+        content-align: center middle;
+        background: $error 20%;
+        color: $error;
+        border: tall $error;
+    }
     """
 
     BINDINGS = [
@@ -110,6 +114,10 @@ class CarJacker(App):
                 yield JackettSearch()
         yield Footer()
 
+    def on_ready(self) -> None:
+        # Focus the specific DataTable inside TransmissionManager on startup
+        self.query_one(TransmissionManager).query_one(DataTable).focus()
+
     # Tracks the current view state: 0=Both, 1=Transmission Only, 2=Jackett Only
     view_mode = 0
 
@@ -134,14 +142,18 @@ class CarJacker(App):
         if self.view_mode == 0:
             trans_pane.display = True
             jackett_pane.display = True
+            self.query_one("#transmission-table").focus()
         elif self.view_mode == 1:
             trans_pane.display = True
             jackett_pane.display = False
-            trans_pane.focus()
+            self.query_one("#transmission-table").focus()
         else:
             trans_pane.display = False
             jackett_pane.display = True
-            jackett_pane.focus()
+            try:
+                self.query_one("#results-table").focus()
+            except:
+                jackett_pane.focus()
 
     def action_toggle_status(self):
         """Logic based on which widget currently has the focus."""

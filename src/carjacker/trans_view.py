@@ -13,6 +13,7 @@ class TransmissionManager(Static):
         table.add_columns("Status", "Progress", "Name")
         table.cursor_type = "row"
         self.set_interval(2, self.update_stats)
+        self.focus_table()
 
     def get_selected_torrent(self):
         """Helper function to get currently hovered torrent."""
@@ -25,6 +26,9 @@ class TransmissionManager(Static):
         t = self.app.client.get_torrent(torrent_id)
 
         return t, torrent_id
+
+    def focus_table(self):
+        self.query_one(DataTable).focus()
 
     def toggle_selected(self):
         t, torrent_id = self.get_selected_torrent()
